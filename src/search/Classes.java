@@ -8,11 +8,12 @@ public class Classes {
   public String packname;
   public boolean trueclass=true;
   public List<String> method=new ArrayList<String>();
+  public int lines;
   
-  public Classes (String classname,String packname,boolean trueclass)
+  public Classes (String classname,String packname)
   {
 	  this.name=classname;
 	  this.packname=packname;
-	  this.trueclass=trueclass;
+	  
   }
 }
