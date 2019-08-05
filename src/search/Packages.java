@@ -9,6 +9,7 @@ public class Packages {
   public String name;
   public int classlines=0;
   List<Classes> pkClasses=new ArrayList<Classes>();
+  List<Class<?>> pkClazz=new ArrayList<Class<?>>();
   public Packages(String name) {
 	  this.name=name;
   }

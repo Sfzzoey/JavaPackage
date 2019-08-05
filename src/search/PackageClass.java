@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.LineNumberReader;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
@@ -17,7 +19,7 @@ public class PackageClass {
 	public static String rootPath="/D:/packbugpredict/jaxen-2.0.0-BETA/"; //针对 java项目		
 	public static File rootFile = new File(rootPath);
     
-  public static void main(String[] args)throws IOException {	 
+    public static void main(String[] args)throws IOException {	 
 //	   Classes[] clazz= classInfor(rootPath);
 //	   for(int i=0;i<clazz.length;i++)
 //	   {   
@@ -26,16 +28,11 @@ public class PackageClass {
 //		   else
 //			  System.out.println("找不到该"+clazz[i].name+".class文件对应的.java文件的路径"); 
 //	   }
-	  pkLines();
-//	  for(Packages pk:findPackage(rootPath))
-//	  {  
-//		  System.out.println(pk.name);
-//		
-//	
-//		// System.out.println(pk[i].name+"类的总行数为："+plines);	
-//	  }
-  }
+	   pkLines();
+	   pkclass();
+	   findMethod();
 
+  }
 
   public static List<String> listclassFiles(File rootFile,List<String> fileList,String rootPath ) throws IOException{
 		//该方法通过包的绝对路径去遍历文件路径中的.class文件，找到类的全名（包名+类名）
@@ -105,20 +102,18 @@ public class PackageClass {
 		 
 	   }
 	   for(Packages pk:packagee) {
-		   for(Classes cls:classInfor(rootPath))
+		   for(Class<?> clazz:classObject(rootPath))
 		   {
-			   if(cls.packname.equals(pk.name))
+			   if(clazz.getPackage().getName().equals(pk.name))
 			   {
-				   pk.pkClasses.add(cls);
+				   pk.pkClazz.add(clazz);
 			   }
 		   }
 	   }
 	  return packagee;
 	}
     
-    public static Classes[] classInfor(String rootPath) throws IOException {
-    	File file=new File("D:\\packbugpredict\\projectsource\\jaxen-master\\jaxen-master");
-    	List<Class<?>> classeslist=new ArrayList<Class<?>>();
+    public static Classes[] classInfor(List<Class<?>> classeslist,String rootPath) throws IOException {   	    	 
    	    classeslist=classObject(rootPath);   	    
    	    Classes[] clazz=new Classes [classeslist.size()];
    	    for(int i=0;i< classeslist.size();i++) {   	    	
@@ -134,21 +129,13 @@ public class PackageClass {
    	        {
    	    	   clazz[i].trueclass=false;
    	        }
-   	      
-   	  //  lines= getClassName(file,classeslist.get(i).getName());
-   	       List<Integer> clines=getClasslines(file, cname.replace(".","\\"),new ArrayList<Integer>());   	      
-	       if(clines.size()>0)
-	        { 
-	    	   clazz[i].lines=clines.get(0);   	       
-	    	   
-	    	}
-//	       else {
-//	    	 System.out.println("找不到该"+cname+".class文件对应的.java文件的路径");
-//	       }
+   	         	    	            
    	    }
    	     return clazz;
     }
+    
    public static List<Integer> getClasslines(File file,String clsname,List<Integer> clineslist){		
+	  
 	  String cname=clsname;	
 	  File[] listFiles = file.listFiles();
 	 
@@ -194,19 +181,98 @@ public class PackageClass {
    
    public static void pkLines()throws IOException{
 	 // Packages[] pk= findPackage(rootPath);
-	  
+	  File file=new File("D:\\packbugpredict\\projectsource\\jaxen-master\\jaxen-master"); 
 	  int plines=0;   
 	  for(Packages pk:findPackage(rootPath))
 	  {  
 		  
-		 for(Classes cls: pk.pkClasses)
+		 for(Class<?> cls: pk.pkClazz)
 		 {
+			 List<Integer> clines=getClasslines(file, cls.getName().replace(".","\\"),new ArrayList<Integer>());   	      
+		       if(clines.size()>0)
+		        { 
+		    	   plines=plines+clines.get(0);    	       
+		    	   
+		    	}
 			// System.out.println(cls.name);
-			 plines=plines+cls.lines;
-	 }
+			 
+	 }		
 		System.out.println(pk.name+"类的总行数为："+plines);	
+		  plines=0;  
 	  }
 	 
    }
-    
+   public static void pkclass()throws IOException{
+		 // Packages[] pk= findPackage(rootPath);	
+	      float uclazz=0;
+	      float clazz=0;
+	      float ucratio=0;
+		 
+	      for(Packages pk:findPackage(rootPath))
+		  { 
+			  
+			 for(Class<?> cls: pk.pkClazz)
+			 {  
+				 ++clazz;
+				if(cls.isInterface()==true||Modifier.isAbstract(cls.getModifiers())==true)
+				  {
+					++uclazz;
+				  }
+			       
+				// System.out.println(cls.name);
+		    }
+			   ucratio=uclazz/clazz;
+			   System.out.println(pk.name+"包中接口或抽象类比率："+ucratio);			  
+			   uclazz=0;
+		       clazz=0;
+		       ucratio=0;
+		  }
+		 
+	   }
+   public static void findMethod() throws IOException{
+	   StringBuffer buffer = new StringBuffer();
+	   List<String> methodlist=new ArrayList<String>();
+	   for(Packages pk:findPackage(rootPath)) {
+		   for(Class<?> cls: pk.pkClazz)
+		   { Method[] methods= cls.getDeclaredMethods();
+		     System.out.println(cls.getName()+"类的声明的方法有：");
+		     for (int i = 0; i < methods.length; i++) {
+	    			String mothodModifer = Modifier.toString(methods[i].getModifiers());
+	    			buffer.append(mothodModifer + " ");
+	     
+	    			Class mothodReturnType = methods[i].getReturnType();
+	    			String simpleName = mothodReturnType.getSimpleName();		     			
+	    			buffer.append(simpleName + " ");
+	     
+	    			String mothodName = methods[i].getName();
+	    			buffer.append(mothodName + " (");
+	     
+	    			Class[] parameterTypes = methods[i].getParameterTypes();
+	    			Parameter[] parameters = methods[i].getParameters();
+	    			for (int j = 0; j < parameterTypes.length; j++) {
+	    				String simpleName2 = parameterTypes[j].getSimpleName();
+	    				String name = parameters[j].getName();
+	    				if (j == 0) {
+	    					buffer.append(simpleName2 + " " + name);
+	    				} else {
+	    					buffer.append("," + simpleName2 + " " + name);
+	    				}
+	    			}
+	    			buffer.append("){" + System.getProperty("line.separator"));
+	     
+	    			buffer.append("}" + System.getProperty("line.separator"));
+	     
+	    			methodlist.add(buffer.toString());
+	    			
+	    			//System.out.println(buffer3.toString());
+	    			buffer.delete(0, buffer.length());
+	    			
+	    		}
+		    for(String mts:methodlist)
+		     {System.out.println(mts);}
+		    methodlist.clear();
+		     
+	       }
+	 }
+   }
  }
