@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.LineNumberReader;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
@@ -13,6 +14,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import com.sun.org.apache.bcel.internal.generic.NEW;
+import com.sun.org.apache.bcel.internal.generic.StackInstruction;
+import com.sun.org.glassfish.external.statistics.annotations.Reset;
 
 public class PackageClass {
 	
@@ -28,11 +33,14 @@ public class PackageClass {
 //		   else
 //			  System.out.println("找不到该"+clazz[i].name+".class文件对应的.java文件的路径"); 
 //	   }
-	   pkLines();
-	   pkclass();
-	   findMethod();
-
-  }
+	  // pkLines();
+	  // pkclass();
+	   //findMethod();
+    	//superClass();
+//   
+    	CountRelation();
+        //relationShip();
+       }
 
   public static List<String> listclassFiles(File rootFile,List<String> fileList,String rootPath ) throws IOException{
 		//该方法通过包的绝对路径去遍历文件路径中的.class文件，找到类的全名（包名+类名）
@@ -79,9 +87,81 @@ public class PackageClass {
     	return classlist;
    } 
     
+    public static Set<Relation> relationShip() throws IOException {
+    	String pkname=null;
+    	Set<Relation> relationset=new HashSet<Relation>();
+    	List<Class<?>> clslist=classObject(rootPath);
+    	
+	    for(Class<?>cls:clslist) {
+		  //继承基类
+	    	Class<?> supclass=cls.getSuperclass();
+		 
+			if(supclass!=null)	
+			{ 
+			 
+			 pkname=supclass.getPackage().getName();
+			   if(!pkname.equals(cls.getPackage().getName()) && pkname.indexOf("java.")==-1)
+			   {   
+				  // System.out.println(cls.getName()+"类的基类为："+supclass.getName());
+				  // System.out.println("包"+cls.getPackage().getName()+"依赖于包"+pkname);
+			      relationset.add(new Relation(cls.getPackage().getName(),pkname));
+			   }else {
+				  // System.out.println("包内依赖");
+			   }
+			     
+			}//else 
+				//System.out.println("该类中没有基类");
+	//实现的接口		
+			Class<?>[] interlist=cls.getInterfaces();
+		for(Class<?> itfc:interlist)
+		{
+			String intername=itfc.getName();
+			if(itfc.getPackage()!=cls.getPackage()&&intername.indexOf("java.")==-1)
+			{
+				relationset.add(new Relation(cls.getPackage().getName(),itfc.getPackage().getName()));
+			}
+			//System.out.println(intername);
+		}
+		// 成员变量依赖		
+		//System.out.println("类"+cls.getName()+"中字段的名字");
+		Field[] fs= cls.getDeclaredFields(); 
+		String lpkname=cls.getPackage().getName();
+        String lclazz=cls.getName();
+               
+	    for(Field f:fs) {
+	         
+	    	 String typename=f.getType().getName(); //返回的类型的全名
+	    	 if(typename.lastIndexOf(".")!=-1)
+	    	 {
+	    	   String rpkname=typename.substring(0,typename.lastIndexOf("."));
+	    	    	    		    	 			  	    		    	    	  
+	    	   if(!lpkname.equals(rpkname)&& rpkname.indexOf("java.")==-1)
+	    		{   
+	    		  //System.out.println(rpkname);
+	    			relationset.add(new Relation(lpkname,rpkname));	
+	    		}}}}
+		      //System.out.println(relationset);
+	    return relationset;
+    } 
+    
+    public static void CountRelation()throws IOException{
+    	Set<Relation> relations =relationShip();
+    	Packages[] pks =findPackage();
+    	int ce=0;
+    	for(Packages pk:pks) {
+    		System.out.print("包"+pk.name+"的Ce为：");
+    		for(Relation relation:relations)
+    		 {
+    			if(pk.name.equals(relation.lnote)) {
+    			ce++;}
+    	     }
+    		System.out.println(ce);
+    		ce=0;
+    	}
+    }
     
     
-    public static Packages[] findPackage(String rootPath) throws IOException {	
+    public static Packages[] findPackage() throws IOException {	
 	
 	   Set<String> packfileset = new HashSet<String>();
 	   
@@ -183,7 +263,7 @@ public class PackageClass {
 	 // Packages[] pk= findPackage(rootPath);
 	  File file=new File("D:\\packbugpredict\\projectsource\\jaxen-master\\jaxen-master"); 
 	  int plines=0;   
-	  for(Packages pk:findPackage(rootPath))
+	  for(Packages pk:findPackage())
 	  {  
 		  
 		 for(Class<?> cls: pk.pkClazz)
@@ -208,7 +288,7 @@ public class PackageClass {
 	      float clazz=0;
 	      float ucratio=0;
 		 
-	      for(Packages pk:findPackage(rootPath))
+	      for(Packages pk:findPackage())
 		  { 
 			  
 			 for(Class<?> cls: pk.pkClazz)
@@ -232,7 +312,7 @@ public class PackageClass {
    public static void findMethod() throws IOException{
 	   StringBuffer buffer = new StringBuffer();
 	   List<String> methodlist=new ArrayList<String>();
-	   for(Packages pk:findPackage(rootPath)) {
+	   for(Packages pk:findPackage()) {
 		   for(Class<?> cls: pk.pkClazz)
 		   { Method[] methods= cls.getDeclaredMethods();
 		     System.out.println(cls.getName()+"类的声明的方法有：");
