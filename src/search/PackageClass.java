@@ -15,6 +15,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.w3c.dom.css.ElementCSSInlineStyle;
+
 import com.sun.org.apache.bcel.internal.generic.NEW;
 import com.sun.org.apache.bcel.internal.generic.StackInstruction;
 import com.sun.org.glassfish.external.statistics.annotations.Reset;
@@ -40,7 +42,24 @@ public class PackageClass {
 //   
     	CountRelation();
         //relationShip();
-       }
+//    try {	
+//     for(Class<?> clazz:classObject(rootPath)) {
+//     System.out.println("类："+clazz.getName()+"方法的参数们：");   	
+//    	for(String[] infos: getMethodInfo(clazz)) {
+//    		for(int i=0;i<infos.length;i++) {
+//    		 if(i==0)
+//    			{System.out.println(infos[i]);}
+//    			else {
+//    				System.out.print(infos[i]+" , ") ;	
+//				}
+//    		}
+//    	}
+//    	}
+//    }catch (Exception e) {
+//		
+//	}
+     }
+       
 
   public static List<String> listclassFiles(File rootFile,List<String> fileList,String rootPath ) throws IOException{
 		//该方法通过包的绝对路径去遍历文件路径中的.class文件，找到类的全名（包名+类名）
@@ -104,7 +123,7 @@ public class PackageClass {
 			   {   
 				  // System.out.println(cls.getName()+"类的基类为："+supclass.getName());
 				  // System.out.println("包"+cls.getPackage().getName()+"依赖于包"+pkname);
-			      relationset.add(new Relation(cls.getPackage().getName(),pkname));
+			     relationset.add(new Relation(cls.getPackage().getName(),pkname));
 			   }else {
 				  // System.out.println("包内依赖");
 			   }
@@ -139,8 +158,29 @@ public class PackageClass {
 	    		{   
 	    		  //System.out.println(rpkname);
 	    			relationset.add(new Relation(lpkname,rpkname));	
-	    		}}}}
-		      //System.out.println(relationset);
+	    		}}}
+	    /*成员函数的参数，抛出异常，返回值的类型*/
+		    
+	 try {   for(String[] infos: getMethodInfo(cls)) {
+		 
+		 
+    		for(String info:infos) {
+    		  if(info.lastIndexOf(".")!=-1) {
+    			 String mthInfoPkname=info.substring(0,info.lastIndexOf("."));	 
+    			 if(!lpkname.equals(mthInfoPkname)&& mthInfoPkname.indexOf("java.")==-1)
+ 	    		{   
+ 	    		  
+ 	    			relationset.add(new Relation(lpkname,mthInfoPkname));	
+ 	    		}
+    		 }
+    		}
+    	}}catch (Exception e) {
+			
+		}
+	    
+	    }
+	    //System.out.println(relationset);
+	    
 	    return relationset;
     } 
     
@@ -317,10 +357,10 @@ public class PackageClass {
 		   { Method[] methods= cls.getDeclaredMethods();
 		     System.out.println(cls.getName()+"类的声明的方法有：");
 		     for (int i = 0; i < methods.length; i++) {
-	    			String mothodModifer = Modifier.toString(methods[i].getModifiers());
+	    			String mothodModifer = Modifier.toString(methods[i].getModifiers());//方法的修饰词
 	    			buffer.append(mothodModifer + " ");
 	     
-	    			Class mothodReturnType = methods[i].getReturnType();
+	    			Class mothodReturnType = methods[i].getReturnType();//返回值类型
 	    			String simpleName = mothodReturnType.getSimpleName();		     			
 	    			buffer.append(simpleName + " ");
 	     
@@ -354,5 +394,45 @@ public class PackageClass {
 		     
 	       }
 	 }
+   }
+   
+   public static  List<String[]> getMethodInfo(Class<?> cls) throws Exception{
+	   Method[] methods= cls.getDeclaredMethods();
+	   StringBuffer buffer = new StringBuffer(); 
+	   List<String[]> methodlist=new ArrayList<String[]>();
+	   // System.out.println(cls.getName()+"类的声明的方法有：");
+	   try {  
+	   for (int i = 0; i < methods.length; i++) {
+	    	
+	    	//String mothodName = methods[i].getName();
+	    	//buffer.append("方法："+mothodName+"的信息为:,");
+	    	Class mothodReturnType = methods[i].getReturnType();//返回值类型			
+	    	String simpleName = mothodReturnType.getName(); 
+ 			buffer.append(simpleName+",");
+ 			
+ 			Class[] parameterTypes = methods[i].getParameterTypes();
+ 			if(parameterTypes.length!=0)
+ 			  {for (int j = 0; j < parameterTypes.length; j++) {
+ 				String paraTypeName=parameterTypes[j].getName();
+ 				buffer.append(paraTypeName+",");
+ 			  } }
+ 			Class[] exceptions=methods[i].getExceptionTypes();
+ 			if(exceptions.length!=0)
+ 			 {for(int j=0;j<exceptions.length;j++) {
+ 				String expectionTypeName=exceptions[j].getName();
+ 				if(j==exceptions.length-1)
+ 					buffer.append(expectionTypeName);
+ 				else {
+ 					buffer.append(expectionTypeName+",");
+ 				} }
+ 			}
+ 			 methodlist.add(buffer.toString().split(","));
+ 			 buffer.delete(0, buffer.length());
+	     }
+	   } catch (Exception e) {
+           e.printStackTrace();
+       }
+	    
+	     return methodlist;
    }
  }
